@@ -9,7 +9,7 @@ import com.example.sensazionapp.datasource.local.LocalDataStore
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 
-class AuthRepository(
+/*class AuthRepository(
     val authService: AuthService= RetrofitConfig.directusRetrofit.create(AuthService::class.java)
 ){
     suspend fun login(loginData: LoginData){
@@ -34,4 +34,4 @@ class AuthRepository(
 
         }
     }
-}
+}*/

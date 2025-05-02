@@ -5,12 +5,12 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.sensazionapp.datasource.LoginData
-import com.example.sensazionapp.repository.AuthRepository
+
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 
-class AuthViewModel(
+/*class AuthViewModel(
     val authRepository: AuthRepository=AuthRepository()
 ):ViewModel() {
 
@@ -51,3 +51,5 @@ data class AuthState(
 var AUTHSTATE = "AUTH"
 var NOAUTHSTATE = "NOAUTH"
 var IDLE_AUTH_STATE="IDLE_AUTH"
+
+ */

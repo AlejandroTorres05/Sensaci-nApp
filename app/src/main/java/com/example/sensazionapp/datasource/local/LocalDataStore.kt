@@ -22,13 +22,12 @@ object LocalDataSourceProvider{
 
 class LocalDataStore(val dataStore: DataStore<Preferences>) {
     suspend fun save(key:String, value:String){
-        dataStore.edit { prefs ->
-            prefs[stringPreferencesKey(key)] = value
+        /*dataStore.edit { prefs ->
+            prefs[stringPreferencesKey(key)] = value*/
         }
     }
 
-    fun load(key:String): Flow<String> = dataStore.data.map { prefs->
+    /*fun load(key:String): Flow<String> = dataStore.data.map { prefs->
         prefs[stringPreferencesKey(key)] ?:""
-    }
+    }*/
 
-}
