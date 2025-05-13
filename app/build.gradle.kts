@@ -15,6 +15,9 @@ android {
         versionCode = 1
         versionName = "1.0"
 
+        manifestPlaceholders["auth0Domain"] = "dev-vguxq7gicpeheej8.us.auth0.com"
+        manifestPlaceholders["auth0Scheme"] = "demo"
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -41,6 +44,18 @@ android {
 
 dependencies {
 
+        //Auth0
+    implementation(libs.auth0)
+    implementation("com.google.code.gson:gson:2.12.1")
+
+    //Retrofit
+    implementation(libs.retrofit)
+    implementation(libs.converter.gson)
+    implementation(libs.logging.interceptor)
+
+    implementation(libs.androidx.browser)
+
+    //Navigation
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.navigation.compose.v277)
     implementation(libs.androidx.runtime.livedata)
@@ -52,8 +67,6 @@ dependencies {
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
 
-    //implementation("com.google.firebase:firebase-firestore-ktx")
-    //implementation("com.google.firebase:firebase-auth-ktx")
 
     implementation ("com.google.android.gms:play-services-basement:18.0.0")
     implementation ("com.google.android.gms:play-services-auth:20.2.0")
