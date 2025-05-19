@@ -21,13 +21,15 @@ class Auth0Manager(private val context: Context) {
         CLIENT_ID,
         DOMAIN
     )
-
+    private val sessionManager = SessionManager(context)
     private val _userProfile = MutableStateFlow<UserProfile?>(null)
     val userProfile: StateFlow<UserProfile?> = _userProfile.asStateFlow()
 
     private val _credentials = MutableStateFlow<Credentials?>(null)
     val credentials: StateFlow<Credentials?> = _credentials.asStateFlow()
 
+
+    
     fun login(
         activity: Activity,
         onSuccess: (Credentials) -> Unit,

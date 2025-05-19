@@ -16,7 +16,7 @@ import com.example.sensazionapp.feature.home.ui.screens.HomeScreen
 import com.example.sensazionapp.feature.auth.ui.screens.LoginScreen
 import com.example.sensazionapp.feature.auth.ui.screens.SignInScreen
 import com.example.sensazionapp.feature.auth.ui.viewModels.AuthViewModel
-import com.example.sensazionapp.feature.splash.ui.screens.SplashScreen
+import com.example.sensazionapp.feature.auth.ui.screens.SplashScreen
 import com.example.sensazionapp.ui.theme.SensazionAppTheme
 
 class MainActivity : ComponentActivity() {
@@ -36,7 +36,8 @@ fun App(){
     val navController = rememberNavController()
     val authViewModel: AuthViewModel = viewModel()
 
-    NavHost(navController= navController, startDestination = "login"){
+    NavHost(navController= navController, startDestination = "splash"){
+        composable("splash"){ SplashScreen(navController, authViewModel) }
         composable("login"){ LoginScreen(navController, authViewModel)}
         composable("signIn") { SignInScreen(navController, authViewModel) }
         composable("home/{email}", arguments = listOf(

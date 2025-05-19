@@ -21,18 +21,28 @@ class AuthViewModel(
     private val auth0Manager = Auth0Manager(application)
     private val sessionManager = SessionManager(application)
 
-    private val _authState = MutableStateFlow<AuthState>(AuthState.Initial)
+    private val _authState = MutableStateFlow<AuthState>(AuthState.Loading)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
 
     private val _currentUser = MutableStateFlow<User?>(sessionManager.getUser())
     val currentUser: StateFlow<User?> = _currentUser.asStateFlow()
 
     init {
-        if (sessionManager.isLoggedIn() && auth0Manager.isAuthenticated()) {
+        val token = sessionManager.getAuthToken()
+        val user = sessionManager.getUser()
+
+        android.util.Log.d("AuthViewModel", "Init check - token: ${token != null}, user: ${user != null}")
+
+        if (token != null && user != null) {
             _authState.value = AuthState.Authenticated
-            _currentUser.value = auth0Manager.getUser()
+            _currentUser.value = user
+            android.util.Log.d("AuthViewModel", "Setting state to Authenticated")
+        } else {
+            _authState.value = AuthState.Initial
+            android.util.Log.d("AuthViewModel", "Setting state to Initial")
         }
     }
+
 
     fun login(activity: Activity) {
         _authState.value = AuthState.Loading
