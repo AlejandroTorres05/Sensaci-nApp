@@ -44,6 +44,8 @@ android {
 
 dependencies {
 
+    implementation("com.google.firebase:firebase-messaging:24.0.0")
+
     // OpenStreetMap - OSMDroid
     implementation(libs.osmdroid.android)
 

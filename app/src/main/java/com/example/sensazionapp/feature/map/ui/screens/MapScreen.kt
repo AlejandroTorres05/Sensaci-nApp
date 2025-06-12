@@ -1,400 +1,297 @@
+// MapScreen.kt - Actualizado con sistema de reportes
 package com.example.sensazionapp.feature.map.ui.screens
 
 import android.Manifest
 import android.util.Log
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.sensazionapp.feature.auth.ui.viewModels.AuthViewModel
-import com.example.sensazionapp.feature.map.ui.components.OSMMapView
 import com.example.sensazionapp.feature.map.ui.viewModels.MapViewModel
 import com.example.sensazionapp.feature.map.ui.viewModels.MapViewModelFactory
-import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.isGranted
-import com.google.accompanist.permissions.rememberPermissionState
-import com.google.accompanist.permissions.shouldShowRationale
+import com.example.sensazionapp.feature.map.ui.components.OSMMapView
+import com.example.sensazionapp.feature.incidents.ui.viewmodel.IncidentViewModel
+import com.example.sensazionapp.feature.incidents.ui.viewmodel.IncidentViewModelFactory
+import com.example.sensazionapp.feature.incidents.ui.screen.IncidentReportDialog
+import com.example.sensazionapp.feature.incidents.data.repository.IncidentRepository
+import com.example.sensazionapp.util.NetworkUtil
 
-@OptIn(ExperimentalPermissionsApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MapScreen(
-    authViewModel: AuthViewModel
+    authViewModel: AuthViewModel,
+    showReportDialog: Boolean = false
 ) {
+    val context = LocalContext.current
+
+    // ViewModels
     val mapViewModel: MapViewModel = viewModel(
         factory = MapViewModelFactory(authViewModel)
     )
-    val context = LocalContext.current
-    val uiState by mapViewModel.uiState.collectAsState()
 
-    // Manejar permisos de ubicación
-    val locationPermissionState = rememberPermissionState(
-        Manifest.permission.ACCESS_FINE_LOCATION
+    // Crear IncidentViewModel
+    val incidentRepository = remember {
+        val apiService = NetworkUtil.createApiService { authViewModel.getAccessToken() }
+        IncidentRepository(apiService)
+    }
+
+    val incidentViewModel: IncidentViewModel = viewModel(
+        factory = IncidentViewModelFactory(incidentRepository)
+    )
+
+    // Estados
+    val mapUiState by mapViewModel.uiState.collectAsState()
+    val nearbyIncidents by incidentViewModel.nearbyIncidents.collectAsState()
+    val isLoadingIncidents by incidentViewModel.isLoadingIncidents.collectAsState()
+    var showReportDialogState by remember { mutableStateOf(showReportDialog) }
+
+    Log.d("MapScreen", "=== MAPSCREEN RECOMPOSED ===")
+    Log.d("MapScreen", "UiState: isLoading=${mapUiState.isLoadingLocation}, hasLocation=${mapUiState.currentLocation != null}, isSharing=${mapUiState.isLocationSharingActive}")
+
+    // Launcher para permisos de ubicación
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
+            Log.d("MapScreen", "=== PERMISO CONCEDIDO ===")
             mapViewModel.onLocationPermissionGranted()
         } else {
+            Log.d("MapScreen", "=== PERMISO DENEGADO ===")
             mapViewModel.onLocationPermissionDenied()
         }
     }
 
     // Inicializar servicios de ubicación
     LaunchedEffect(Unit) {
+        Log.d("MapScreen", "=== LAUNCHED EFFECT INICIALIZACIÓN ===")
         mapViewModel.initializeLocationServices(context)
     }
 
-    LaunchedEffect(locationPermissionState.status.isGranted) {
-        if (locationPermissionState.status.isGranted) {
-            mapViewModel.onLocationPermissionGranted()
+    // Observar cambios en los permisos
+    LaunchedEffect(mapUiState.isLocationPermissionGranted) {
+        Log.d("MapScreen", "=== LAUNCHED EFFECT PERMISO CAMBIÓ ===")
+        Log.d("MapScreen", "Nuevo estado permiso: ${mapUiState.isLocationPermissionGranted}")
+    }
+
+    // Observar cambios en el estado de sharing
+    LaunchedEffect(mapUiState.isLocationSharingActive) {
+        Log.d("MapScreen", "=== ESTADO SHARING CAMBIÓ ===")
+        Log.d("MapScreen", "Nuevo estado: ${mapUiState.isLocationSharingActive}")
+    }
+
+    // Cargar incidentes cercanos cuando cambie la ubicación
+    LaunchedEffect(mapUiState.currentLocation) {
+        mapUiState.currentLocation?.let { location ->
+            Log.d("MapScreen", "=== NUEVA UBICACIÓN EN UI ===")
+            Log.d("MapScreen", "Lat: ${location.latitude}, Lon: ${location.longitude}")
+
+            // Cargar incidentes cercanos
+            incidentViewModel.loadNearbyIncidents(location.latitude, location.longitude)
         }
     }
 
-    // Log de estados para debugging
-    LaunchedEffect(uiState.currentLocation) {
-        uiState.currentLocation?.let { location ->
+    // Limpiar error después de un tiempo
+    LaunchedEffect(mapUiState.errorMessage) {
+        mapUiState.errorMessage?.let {
+            kotlinx.coroutines.delay(5000)
+            mapViewModel.clearError()
         }
     }
 
-    LaunchedEffect(uiState.isLocationSharingActive) {
-        Log.d("MapScreen", "Nuevo estado: ${uiState.isLocationSharingActive}")
-    }
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (mapUiState.isLocationPermissionGranted) {
+            Log.d("MapScreen", "Permisos concedidos, mostrando mapa")
 
-    LaunchedEffect(uiState.errorMessage) {
-        uiState.errorMessage?.let { error ->
-            Log.e("MapScreen", "Error: $error")
-        }
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFF5F6FA))
-    ) {
-        when {
-            // Permisos no concedidos
-            !locationPermissionState.status.isGranted -> {
-                PermissionRequestScreen(
-                    onRequestPermission = {
-                        Log.d("MapScreen", "Usuario solicitando permisos")
-                        locationPermissionState.launchPermissionRequest()
-                    },
-                    shouldShowRationale = locationPermissionState.status.shouldShowRationale
-                )
-            }
-
-            // Permisos concedidos
-            else -> {
-                Column(modifier = Modifier.fillMaxSize()) {
-                    // Header con información de estado
-                    MapStatusHeader(
-                        isLoadingLocation = uiState.isLoadingLocation,
-                        currentLocation = uiState.currentLocation,
-                        isLocationSharingActive = uiState.isLocationSharingActive,
-                        errorMessage = uiState.errorMessage,
-                        onClearError = { mapViewModel.clearError() },
-                        onToggleLocationSharing = {
-                            mapViewModel.toggleLocationSharing()
-                        }
-                    )
-
-                    // Mapa principal
-                    OSMMapView(
-                        modifier = Modifier.weight(1f),
-                        currentLocation = uiState.currentLocation,
-                        onMapReady = {
-                            mapViewModel.onMapReady()
-                        }
-                    )
+            // Mapa con incidentes
+            OSMMapView(
+                currentLocation = mapUiState.currentLocation,
+                incidents = nearbyIncidents,
+                onMapReady = {
+                    Log.d("MapScreen", "Mapa reporta que está listo")
+                    mapViewModel.onMapReady()
                 }
-            }
-        }
-    }
-}
+            )
 
-@Composable
-private fun PermissionRequestScreen(
-    onRequestPermission: () -> Unit,
-    shouldShowRationale: Boolean
-) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+            // Botón flotante para crear reporte
+            FloatingActionButton(
+                onClick = { showReportDialogState = true },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp),
+                containerColor = Color(0xFFE53E3E),
+                contentColor = Color.White
             ) {
-                // Icono
-                Box(
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Crear Reporte"
+                )
+            }
+
+            // Panel de control superior
+            Card(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(16.dp)
+                    .fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.95f))
+            ) {
+                Column(
                     modifier = Modifier
-                        .size(80.dp)
-                        .clip(RoundedCornerShape(40.dp))
-                        .background(Color(0xFFFF9800).copy(alpha = 0.1f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.LocationOn,
-                        contentDescription = "Ubicación",
-                        modifier = Modifier.size(40.dp),
-                        tint = Color(0xFFFF9800)
-                    )
-                }
-
-                Box(modifier = Modifier.padding(16.dp))
-
-                Text(
-                    text = "Permiso de Ubicación",
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = Color(0xFF333333)
-                )
-
-                Box(modifier = Modifier.padding(8.dp))
-
-                Text(
-                    text = if (shouldShowRationale) {
-                        "SensaziónApp necesita acceso a tu ubicación para mostrarte el mapa de seguridad y reportes cercanos. Por favor, concede el permiso en la configuración."
-                    } else {
-                        "Para mostrarte el mapa interactivo y reportes de seguridad cerca de ti, necesitamos acceso a tu ubicación."
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray,
-                    textAlign = TextAlign.Center
-                )
-
-                Box(modifier = Modifier.padding(16.dp))
-
-                Button(
-                    onClick = onRequestPermission,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF4287F5)
-                    )
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "Conceder Permiso",
-                        modifier = Modifier.padding(vertical = 8.dp),
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        text = "Compartir Ubicación",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
                     )
-                }
-            }
-        }
-    }
-}
 
-@Composable
-private fun MapStatusHeader(
-    isLoadingLocation: Boolean,
-    currentLocation: android.location.Location?,
-    isLocationSharingActive: Boolean,
-    errorMessage: String?,
-    onClearError: () -> Unit,
-    onToggleLocationSharing: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = when {
-                errorMessage != null -> Color(0xFFFFEBEE)
-                isLoadingLocation -> Color(0xFFF3E5F5)
-                currentLocation != null -> Color(0xFFE8F5E8)
-                else -> Color.White
-            }
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp)
-        ) {
-            // Primera fila: Estado principal
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                when {
-                    errorMessage != null -> {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Warning,
-                                contentDescription = "Error",
-                                tint = Color(0xFFD32F2F),
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Text(
-                                text = "Error de ubicación",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color(0xFFD32F2F),
-                                modifier = Modifier.padding(start = 8.dp)
-                            )
-                        }
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = if (mapUiState.isLocationSharingActive) "ACTIVO" else "INACTIVO",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (mapUiState.isLocationSharingActive) Color(0xFF4CAF50) else Color(0xFFFF5722),
+                            fontWeight = FontWeight.Bold
+                        )
+
                         Button(
-                            onClick = onClearError,
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
-                            modifier = Modifier.size(width = 60.dp, height = 32.dp)
-                        ) {
-                            Text("OK", color = Color.White, style = MaterialTheme.typography.bodySmall)
-                        }
-                    }
-                    isLoadingLocation -> {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                strokeWidth = 2.dp,
-                                color = Color(0xFF4287F5)
+                            onClick = { mapViewModel.toggleLocationSharing() },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (mapUiState.isLocationSharingActive) Color(0xFFFF5722) else Color(0xFF4CAF50)
                             )
-                            Text(
-                                text = "Obteniendo ubicación...",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color(0xFF666666),
-                                modifier = Modifier.padding(start = 8.dp)
-                            )
-                        }
-                    }
-                    currentLocation != null -> {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.weight(1f)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.LocationOn,
-                                contentDescription = "Ubicación",
-                                tint = Color(0xFF4CAF50),
+                                imageVector = Icons.Default.Share,
+                                contentDescription = null,
                                 modifier = Modifier.size(16.dp)
                             )
-                            Text(
-                                text = "Ubicación obtenida",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color(0xFF4CAF50),
-                                modifier = Modifier.padding(start = 8.dp)
-                            )
-                        }
-
-                        // BOTÓN IMPORTANTE: Toggle location sharing - AHORA SIEMPRE VISIBLE
-                        Button(
-                            onClick = onToggleLocationSharing,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (isLocationSharingActive) Color(0xFF4CAF50) else Color(0xFF2196F3)
-                            ),
-                            modifier = Modifier.size(width = 100.dp, height = 32.dp)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Share,
-                                    contentDescription = if (isLocationSharingActive) "Detener envío" else "Iniciar envío",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                                Text(
-                                    text = if (isLocationSharingActive) "ON" else "OFF",
-                                    color = Color.White,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    modifier = Modifier.padding(start = 4.dp)
-                                )
-                            }
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(if (mapUiState.isLocationSharingActive) "OFF" else "ON")
                         }
                     }
-                    else -> {
+
+                    // Mostrar información de incidentes
+                    if (nearbyIncidents.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Divider()
+                        Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Mapa de Seguridad",
-                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                            color = Color(0xFF333333)
+                            text = "Incidentes cercanos: ${nearbyIncidents.size}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFFFF5722),
+                            fontWeight = FontWeight.Medium
                         )
                     }
                 }
             }
 
-            // Segunda fila: Información detallada
-            if (currentLocation != null && errorMessage == null) {
-                Row(
+            // Indicador de carga de incidentes
+            if (isLoadingIncidents) {
+                Card(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                        .align(Alignment.BottomStart)
+                        .padding(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.9f))
                 ) {
-                    Text(
-                        text = "Lat: ${String.format("%.4f", currentLocation.latitude)}, Lon: ${String.format("%.4f", currentLocation.longitude)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF666666)
-                    )
-
-                    Text(
-                        text = if (isLocationSharingActive) "● ENVIANDO AL SERVIDOR" else "● NO ENVIANDO",
-                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                        color = if (isLocationSharingActive) Color(0xFF4CAF50) else Color(0xFFFF9800)
-                    )
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Cargando incidentes...",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
                 }
             }
 
-            // Mostrar mensaje de error si existe
-            if (errorMessage != null) {
+        } else {
+            // Vista cuando no hay permisos
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
                 Text(
-                    text = errorMessage,
-                    style = MaterialTheme.typography.bodySmall,
+                    text = "Permisos de Ubicación Requeridos",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "Para usar el mapa y ver incidentes cercanos, necesitamos acceso a tu ubicación.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Gray
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Button(
+                    onClick = {
+                        locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                    }
+                ) {
+                    Text("Conceder Permisos")
+                }
+            }
+        }
+
+        // Mostrar errores
+        mapUiState.errorMessage?.let { error ->
+            Card(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(16.dp)
+                    .fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE))
+            ) {
+                Text(
+                    text = error,
+                    modifier = Modifier.padding(16.dp),
                     color = Color(0xFFD32F2F),
-                    textAlign = TextAlign.Start,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 4.dp)
+                    style = MaterialTheme.typography.bodyMedium
                 )
             }
         }
     }
+
+    // Modal de reporte
+    IncidentReportDialog(
+        isVisible = showReportDialogState,
+        currentLocation = mapUiState.currentLocation,
+        incidentViewModel = incidentViewModel,
+        onDismiss = {
+            showReportDialogState = false
+            incidentViewModel.clearForm()
+        }
+    )
 }

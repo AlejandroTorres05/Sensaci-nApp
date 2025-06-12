@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -37,6 +38,7 @@ sealed class MainDestination(
 ) {
     object Profile : MainDestination("main_profile", "Perfil", Icons.Default.Person)
     object Map : MainDestination("main_map", "Mapa", Icons.Default.LocationOn)
+    object Report : MainDestination("main_report", "Reportar", Icons.Default.Warning)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -51,7 +53,8 @@ fun MainScreen(
 
     val items = listOf(
         MainDestination.Profile,
-        MainDestination.Map
+        MainDestination.Map,
+        MainDestination.Report
     )
 
     Scaffold(
@@ -67,7 +70,12 @@ fun MainScreen(
                         icon = {
                             Icon(
                                 imageVector = destination.icon,
-                                contentDescription = destination.title
+                                contentDescription = destination.title,
+                                tint = if (currentDestination?.hierarchy?.any { it.route == destination.route } == true) {
+                                    Color.White
+                                } else {
+                                    Color.White.copy(alpha = 0.7f)
+                                }
                             )
                         },
                         label = {
@@ -118,7 +126,12 @@ fun MainScreen(
                 )
             }
             composable(MainDestination.Map.route) {
-                MapScreen(authViewModel)
+                MapScreen(authViewModel, true)
+            }
+            composable(MainDestination.Report.route) {
+                // Aquí podríamos mostrar el mapa con el modal de reporte abierto
+                // O simplemente mostrar el MapScreen y que el usuario toque el botón flotante
+                MapScreen(authViewModel, showReportDialog = true)
             }
         }
     }

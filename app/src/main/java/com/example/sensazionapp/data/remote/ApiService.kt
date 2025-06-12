@@ -3,6 +3,8 @@ package com.example.sensazionapp.data.remote
 import com.example.sensazionapp.data.remote.dto.UserDTO
 import com.example.sensazionapp.data.remote.dto.LocationDTO
 import com.example.sensazionapp.data.remote.dto.UserLocationRequest
+import com.example.sensazionapp.feature.incidents.data.model.IncidentDTO
+import com.example.sensazionapp.feature.incidents.data.model.IncidentRequest
 import retrofit2.Response
 import retrofit2.http.*
 
@@ -57,4 +59,37 @@ interface ApiService {
      */
     @GET("users/location/current")
     suspend fun getCurrentLocation(): Response<LocationDTO>
+
+    // === INCIDENT ENDPOINTS ===
+
+    /**
+     * Crear un nuevo reporte/incidente
+     */
+    @POST("incidents")
+    suspend fun createIncident(@Body request: IncidentRequest): Response<IncidentDTO>
+
+    /**
+     * Obtener incidentes cercanos a una ubicación
+     */
+    @GET("incidents/nearby")
+    suspend fun getIncidentsNearby(
+        @Query("lat") latitude: Double,
+        @Query("lng") longitude: Double,
+        @Query("radius") radius: Double = 1000.0 // Radio por defecto 1km
+    ): Response<List<IncidentDTO>>
+
+    /**
+     * Obtener un incidente específico por ID
+     */
+    @GET("incidents/{id}")
+    suspend fun getIncidentById(@Path("id") incidentId: String): Response<IncidentDTO>
+
+    /**
+     * Confirmar o negar un incidente (para futuras funcionalidades)
+     */
+    @PUT("incidents/{id}/confirm")
+    suspend fun confirmIncident(
+        @Path("id") incidentId: String,
+        @Body confirmationRequest: Any // IncidentConfirmationRequest cuando lo implementemos
+    ): Response<IncidentDTO>
 }
