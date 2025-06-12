@@ -17,6 +17,7 @@ import com.example.sensazionapp.feature.auth.ui.viewModels.AuthViewModel
 import com.example.sensazionapp.feature.auth.ui.screens.SplashScreen
 import com.example.sensazionapp.feature.main.ui.screens.MainScreen
 import com.example.sensazionapp.feature.map.ui.screens.MapScreen
+import com.example.sensazionapp.feature.map.ui.viewModels.MapViewModel
 import com.example.sensazionapp.feature.profile.ui.screens.ProfileScreen
 import com.example.sensazionapp.ui.theme.SensazionAppTheme
 
@@ -50,7 +51,6 @@ fun App(){
                 authViewModel = authViewModel
             )
         }
-        composable("map") { MapScreen() }
     }
 }
 
@@ -105,13 +105,6 @@ fun ProfileScreenPreview() {
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun MapScreenPreview() {
-    SensazionAppTheme {
-        MapScreen()
-    }
-}
 
 @Preview(showBackground = true)
 @Composable

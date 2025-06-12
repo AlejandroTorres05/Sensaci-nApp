@@ -118,7 +118,7 @@ fun MainScreen(
                 )
             }
             composable(MainDestination.Map.route) {
-                MapScreen()
+                MapScreen(authViewModel)
             }
         }
     }

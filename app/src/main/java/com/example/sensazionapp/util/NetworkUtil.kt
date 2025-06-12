@@ -8,7 +8,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 object NetworkUtil {
-    private const val BASE_URL = "https://ee49-200-110-174-169.ngrok-free.app/api/"
+    private const val BASE_URL = "https://d020-200-110-174-169.ngrok-free.app/api/"
 
     // Interceptor para agregar automáticamente el token de Auth0 a todas las requests
     private fun createAuthInterceptor(getToken: () -> String?): Interceptor {

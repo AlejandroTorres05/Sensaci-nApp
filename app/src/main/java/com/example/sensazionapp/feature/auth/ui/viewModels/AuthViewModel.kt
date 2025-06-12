@@ -206,6 +206,10 @@ class AuthViewModel(
         }
     }
 
+    fun getAccessToken(): String? {
+        return auth0Manager.getAccessToken()
+    }
+
     fun logout(activity: Activity) {
         _authState.value = AuthState.Loading
 
