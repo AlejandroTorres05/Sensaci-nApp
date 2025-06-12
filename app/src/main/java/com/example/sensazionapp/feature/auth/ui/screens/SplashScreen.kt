@@ -55,7 +55,7 @@ fun SplashScreen(
             when (authState) {
                 is AuthState.Authenticated -> {
                     hasNavigated = true
-                    navController.navigate("profile") {
+                    navController.navigate("main") {
                         popUpTo("splash") { inclusive = true }
                     }
                 }

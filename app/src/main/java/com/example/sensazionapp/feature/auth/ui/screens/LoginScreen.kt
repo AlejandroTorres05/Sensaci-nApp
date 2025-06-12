@@ -59,7 +59,7 @@ fun LoginScreen(
         when (authState) {
             is AuthState.Authenticated -> {
                 // Usuario completamente autenticado
-                navController.navigate("profile") {
+                navController.navigate("main") {
                     popUpTo("login") { inclusive = true }
                 }
             }

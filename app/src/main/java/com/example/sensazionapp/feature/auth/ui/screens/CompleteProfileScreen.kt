@@ -56,7 +56,7 @@ fun CompleteProfileScreen(
     LaunchedEffect(authState) {
         when (authState) {
             is AuthState.Authenticated -> {
-                navController.navigate("profile") {
+                navController.navigate("main") {
                     popUpTo("complete_profile") { inclusive = true }
                 }
             }

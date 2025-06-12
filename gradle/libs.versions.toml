@@ -1,4 +1,6 @@
 [versions]
+accompanistPermissions = "0.32.0"
+activityComposeVersion = "1.8.2"
 agp = "8.9.0"
 auth0 = "2.9.0"
 browser = "1.8.0"
@@ -17,11 +19,15 @@ material3 = "1.3.2"
 materialIconsExtended = "1.7.8"
 navigationCompose = "2.8.9"
 navigationComposeVersion = "2.7.7"
+osmdroidAndroid = "6.1.17"
+playServicesLocation = "21.3.0"
 retrofit = "2.9.0"
 runtimeLivedata = "1.8.0"
 animationCoreLint = "1.8.0"
 
 [libraries]
+accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanistPermissions" }
+androidx-activity-compose-v182 = { module = "androidx.activity:activity-compose", version.ref = "activityComposeVersion" }
 androidx-browser = { module = "androidx.browser:browser", version.ref = "browser" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-material-icons-extended = { module = "androidx.compose.material:material-icons-extended", version.ref = "materialIconsExtended" }
@@ -47,6 +53,8 @@ androidx-datastore-core-android = { group = "androidx.datastore", name = "datast
 androidx-animation-core-lint = { group = "androidx.compose.animation", name = "animation-core-lint", version.ref = "animationCoreLint" }
 logging-interceptor = { module = "com.squareup.okhttp3:logging-interceptor", version.ref = "loggingInterceptor" }
 material3 = { module = "androidx.compose.material3:material3", version.ref = "material3" }
+osmdroid-android = { module = "org.osmdroid:osmdroid-android", version.ref = "osmdroidAndroid" }
+play-services-location = { module = "com.google.android.gms:play-services-location", version.ref = "playServicesLocation" }
 retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
 
 [plugins]

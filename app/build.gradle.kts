@@ -44,7 +44,17 @@ android {
 
 dependencies {
 
-        //Auth0
+    // OpenStreetMap - OSMDroid
+    implementation(libs.osmdroid.android)
+
+    // Location Services de Google Play
+    implementation(libs.play.services.location)
+
+    // Permisos en tiempo de ejecución
+    implementation(libs.androidx.activity.compose.v182)
+    implementation(libs.accompanist.permissions)
+
+    //Auth0
     implementation(libs.auth0)
     implementation("com.google.code.gson:gson:2.12.1")
 
