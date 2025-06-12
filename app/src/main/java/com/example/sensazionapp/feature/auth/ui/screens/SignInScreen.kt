@@ -29,7 +29,6 @@ fun SignInScreen(
     authViewModel: AuthViewModel = viewModel()
 ) {
     val authState by authViewModel.authState.collectAsState()
-    val currentUser by authViewModel.currentUser.collectAsState()
 
     val context = LocalContext.current
     val activity: Activity? = remember(context) {
@@ -39,10 +38,24 @@ fun SignInScreen(
     LaunchedEffect(authState) {
         when (authState) {
             is AuthState.Authenticated -> {
-                val email = currentUser?.email ?: ""
-                navController.navigate("home/$email") {
+                navController.navigate("profile") {
                     popUpTo("signIn") { inclusive = true }
                 }
+            }
+            is AuthState.ProfileIncomplete -> {
+                navController.navigate("complete_profile") {
+                    popUpTo("signIn") { inclusive = true }
+                }
+            }
+            is AuthState.Initial -> {
+                // Ir a login cuando el estado cambie a Initial
+                navController.navigate("login") {
+                    popUpTo("signIn") { inclusive = true }
+                }
+            }
+            is AuthState.NeedsRegistration -> {
+                // Ya está en la pantalla correcta (SignIn/Register)
+                // No hacer nada
             }
             else -> {}
         }
@@ -78,7 +91,6 @@ fun SignInScreen(
             }
 
             Box(modifier = Modifier.height(32.dp))
-
 
             Text(
                 text = "SENSAZIONAPP",
@@ -123,7 +135,7 @@ fun SignInScreen(
                             )
                             Box(modifier = Modifier.height(16.dp))
                             Text(
-                                text = "Abriendo registro seguro...",
+                                text = "Procesando registro...",
                                 color = Color.Gray,
                                 style = MaterialTheme.typography.bodyMedium
                             )
@@ -151,7 +163,7 @@ fun SignInScreen(
                                 )
                             ) {
                                 Text(
-                                    "Registrarse",
+                                    "Intentar de nuevo",
                                     modifier = Modifier.padding(vertical = 8.dp),
                                     style = MaterialTheme.typography.bodyLarge.copy(
                                         fontWeight = FontWeight.SemiBold
@@ -182,7 +194,7 @@ fun SignInScreen(
                     Box(modifier = Modifier.height(24.dp))
 
                     TextButton(
-                        onClick = { navController.navigate("login") }
+                        onClick = { authViewModel.goToLogin() } // ✅ Usar ViewModel
                     ) {
                         Text(
                             text = "¿Ya tienes cuenta? Inicia sesión",

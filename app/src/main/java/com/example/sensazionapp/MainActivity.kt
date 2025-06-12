@@ -12,11 +12,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.example.sensazionapp.feature.home.ui.screens.HomeScreen
+import com.example.sensazionapp.feature.auth.ui.screens.CompleteProfileScreen
 import com.example.sensazionapp.feature.auth.ui.screens.LoginScreen
 import com.example.sensazionapp.feature.auth.ui.screens.SignInScreen
 import com.example.sensazionapp.feature.auth.ui.viewModels.AuthViewModel
 import com.example.sensazionapp.feature.auth.ui.screens.SplashScreen
+import com.example.sensazionapp.feature.profile.ui.screens.ProfileScreen
 import com.example.sensazionapp.ui.theme.SensazionAppTheme
 
 class MainActivity : ComponentActivity() {
@@ -40,15 +41,8 @@ fun App(){
         composable("splash"){ SplashScreen(navController, authViewModel) }
         composable("login"){ LoginScreen(navController, authViewModel)}
         composable("signIn") { SignInScreen(navController, authViewModel) }
-        composable("home/{email}", arguments = listOf(
-            navArgument("email"){type = NavType.StringType}
-        )
-        ) {
-            entry ->
-            val email = entry.arguments?.getString("email")
-            HomeScreen(navController, email, authViewModel)
-        }
-
+        composable("complete_profile") { CompleteProfileScreen(navController, authViewModel) }
+        composable("profile") { ProfileScreen(navController, authViewModel) }
     }
 }
 
@@ -78,8 +72,27 @@ fun SplashScreenPreview() {
 
 @Preview(showBackground = true)
 @Composable
+fun CompletePrfileScreenPreview() {
+    SensazionAppTheme {
+        CompleteProfileScreen()
+    }
+}
+
+/*
+@Preview(showBackground = true)
+@Composable
 fun HomeScreenPreview() {
     SensazionAppTheme {
         HomeScreen()
+    }
+}
+
+ */
+
+@Preview(showBackground = true)
+@Composable
+fun ProfileScreenPreview() {
+    SensazionAppTheme {
+        ProfileScreen()
     }
 }

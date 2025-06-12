@@ -37,14 +37,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import com.example.sensazionapp.util.getActivity
 import androidx.compose.foundation.Image
-import androidx.compose.material3.Icon
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Pin
 import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.background
 import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.Image
-import androidx.compose.ui.res.painterResource
 import com.example.sensazionapp.R
 
 @Composable
@@ -63,8 +58,20 @@ fun LoginScreen(
     LaunchedEffect(authState) {
         when (authState) {
             is AuthState.Authenticated -> {
-                val email = currentUser?.email ?: ""
-                navController.navigate("home/$email") {
+                // Usuario completamente autenticado
+                navController.navigate("profile") {
+                    popUpTo("login") { inclusive = true }
+                }
+            }
+            is AuthState.ProfileIncomplete -> {
+                // Usuario logueado pero perfil incompleto
+                navController.navigate("complete_profile") {
+                    popUpTo("login") { inclusive = true }
+                }
+            }
+            is AuthState.NeedsRegistration -> {
+                // Usuario necesita completar registro, ir a SignIn
+                navController.navigate("signIn") {
                     popUpTo("login") { inclusive = true }
                 }
             }
@@ -75,7 +82,7 @@ fun LoginScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF4287F5)) // Color azul de la splash screen
+            .background(Color(0xFF4287F5))
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -140,7 +147,7 @@ fun LoginScreen(
                             )
                             Box(modifier = Modifier.height(16.dp))
                             Text(
-                                text = "Abriendo login seguro...",
+                                text = "Verificando credenciales...",
                                 color = Color.Gray,
                                 style = MaterialTheme.typography.bodyMedium
                             )
@@ -168,7 +175,7 @@ fun LoginScreen(
                                 )
                             ) {
                                 Text(
-                                    "Iniciar Sesión",
+                                    "Intentar de nuevo",
                                     modifier = Modifier.padding(vertical = 8.dp),
                                     style = MaterialTheme.typography.bodyLarge.copy(
                                         fontWeight = FontWeight.SemiBold
@@ -199,7 +206,7 @@ fun LoginScreen(
                     Box(modifier = Modifier.height(24.dp))
 
                     TextButton(
-                        onClick = { navController.navigate("signIn") }
+                        onClick = { authViewModel.goToSignUp() } // ✅ CAMBIADO: Usar ViewModel en lugar de navegación directa
                     ) {
                         Text(
                             text = "¿No tienes cuenta? Regístrate",

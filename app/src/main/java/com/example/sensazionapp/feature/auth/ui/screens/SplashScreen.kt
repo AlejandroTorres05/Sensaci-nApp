@@ -13,7 +13,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -26,8 +28,8 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.sensazionapp.R
 import com.example.sensazionapp.feature.auth.ui.viewModels.AuthViewModel
+import com.example.sensazionapp.feature.auth.ui.viewModels.AuthViewModel.AuthState
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 @Composable
 fun SplashScreen(
@@ -36,38 +38,121 @@ fun SplashScreen(
 ) {
     val authState by authViewModel.authState.collectAsState()
     val currentUser by authViewModel.currentUser.collectAsState()
-    val coroutineScope = rememberCoroutineScope()
 
-    // Efecto que maneja la navegación después de mostrar la splash screen
-    LaunchedEffect(authState) {
-        android.util.Log.d("SplashScreen", "Current authState: $authState")
-        android.util.Log.d("SplashScreen", "Current user: $currentUser")
+    // Variables para controlar navegación y timing
+    var hasNavigated by remember { mutableStateOf(false) }
+    var minDelayCompleted by remember { mutableStateOf(false) }
+
+    // ✅ DELAY MÍNIMO DE 2 SEGUNDOS
+    LaunchedEffect(Unit) {
+        delay(2000)
+        minDelayCompleted = true
     }
 
-    LaunchedEffect(Unit) {
-        coroutineScope.launch {
-            // Mostrar la splash screen por 2 segundos
-            delay(2000)
-
-            android.util.Log.d("SplashScreen", "After delay, authState: $authState")
-
-            // Verificar el estado de autenticación
+    // ✅ NAVEGACIÓN REACTIVA - Solo cuando delay completado Y estado final
+    LaunchedEffect(authState, minDelayCompleted) {
+        if (minDelayCompleted && !hasNavigated) {
             when (authState) {
-                is AuthViewModel.AuthState.Authenticated -> {
-                    // Si está autenticado, navegar a Home
-                    val email = currentUser?.email ?: ""
-                    android.util.Log.d("SplashScreen", "Navigating to home with email: $email")
-                    navController.navigate("home/$email") {
+                is AuthState.Authenticated -> {
+                    hasNavigated = true
+                    navController.navigate("profile") {
                         popUpTo("splash") { inclusive = true }
                     }
                 }
-                else -> {
-                    // Si no está autenticado, navegar a Login
-                    android.util.Log.d("SplashScreen", "Navigating to login")
+                is AuthState.ProfileIncomplete -> {
+                    hasNavigated = true
+                    navController.navigate("complete_profile") {
+                        popUpTo("splash") { inclusive = true }
+                    }
+                }
+                is AuthState.NeedsRegistration -> {
+                    hasNavigated = true
+                    navController.navigate("signIn") {
+                        popUpTo("splash") { inclusive = true }
+                    }
+                }
+                is AuthState.Initial -> {
+                    hasNavigated = true
                     navController.navigate("login") {
                         popUpTo("splash") { inclusive = true }
                     }
                 }
+                is AuthState.Error -> {
+                    hasNavigated = true
+                    navController.navigate("login") {
+                        popUpTo("splash") { inclusive = true }
+                    }
+                }
+                is AuthState.Loading -> {
+                    // NO NAVEGAR - Esperar a que termine la validación
+                }
+            }
+        } else if (!minDelayCompleted) {
+            println("SPLASH: Minimum delay not completed yet, waiting...")
+        } else if (hasNavigated) {
+            println("SPLASH: Already navigated, skipping...")
+        }
+    }
+
+    // ✅ LOG ADICIONAL - Cambios en authState con timestamps
+    LaunchedEffect(authState) {
+        val timestamp = System.currentTimeMillis()
+        // ✅ SI EL ESTADO CAMBIA A FINAL DESPUÉS DEL DELAY, NAVEGAR INMEDIATAMENTE
+        if (minDelayCompleted && !hasNavigated) {
+            when (authState) {
+                is AuthState.Authenticated -> {
+                    hasNavigated = true
+                    navController.navigate("profile") {
+                        popUpTo("splash") { inclusive = true }
+                    }
+                }
+                is AuthState.ProfileIncomplete -> {
+                    hasNavigated = true
+                    navController.navigate("complete_profile") {
+                        popUpTo("splash") { inclusive = true }
+                    }
+                }
+                is AuthState.Initial -> {
+                    hasNavigated = true
+                    navController.navigate("login") {
+                        popUpTo("splash") { inclusive = true }
+                    }
+                }
+                is AuthState.Error -> {
+                    hasNavigated = true
+                    navController.navigate("login") {
+                        popUpTo("splash") { inclusive = true }
+                    }
+                }
+                is AuthState.Loading -> {
+                    println("SPLASH: [IMMEDIATE] Still validating token...")
+                }
+                is AuthState.NeedsRegistration -> {
+                    println("SPLASH: [IMMEDIATE] User needs registration")
+                    hasNavigated = true
+                    navController.navigate("signIn") {
+                        popUpTo("splash") { inclusive = true }
+                    }
+                }
+            }
+        }
+    }
+
+    // ✅ LOG - Cambios en currentUser
+    LaunchedEffect(currentUser) {
+        if (currentUser != null) {
+            println("SPLASH: User loaded: profileCompleted=${currentUser?.profileCompleted}")
+        }
+    }
+
+    // ✅ TIMEOUT DE SEGURIDAD - Si después de 10 segundos sigue en Loading
+    LaunchedEffect(Unit) {
+        delay(10000) // 10 segundos
+        if (!hasNavigated && minDelayCompleted) {
+            println("SPLASH: TIMEOUT - Token validation took too long, navigating to login")
+            hasNavigated = true
+            navController.navigate("login") {
+                popUpTo("splash") { inclusive = true }
             }
         }
     }
